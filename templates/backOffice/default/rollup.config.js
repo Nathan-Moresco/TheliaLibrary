@@ -1,5 +1,6 @@
 import css from "rollup-plugin-import-css";
 import typescript from "@rollup/plugin-typescript";
+import cleaner from 'rollup-plugin-cleaner';
 
 const globals = {
   react: "React",
@@ -24,6 +25,17 @@ export default [
       },
     ],
     external: ["react", "axios", "react-dom"],
-    plugins: [typescript(), css({ output: "library.css", alwaysOutput: true })],
+    plugins: [
+      typescript(),
+      css({
+        output: "library.css",
+        alwaysOutput: true
+      }),
+      cleaner({
+        targets: [
+          '../../../../../../web/assets/backOffice/default/TheliaLibrary'
+        ]
+      })
+    ],
   },
 ];

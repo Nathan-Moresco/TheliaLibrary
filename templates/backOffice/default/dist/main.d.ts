@@ -18,9 +18,11 @@ declare module "components/AddImage" {
 declare module "components/EditImage" {
     export type EditImageProps = {
         id: number;
+        title: string;
+        url: string;
         onEdit: Function;
     };
-    export default function EditImage({ id, onEdit }: EditImageProps): JSX.Element;
+    export default function EditImage({ id, title, url, onEdit }: EditImageProps): JSX.Element;
 }
 declare module "components/Thumbnail" {
     export type ThumbnailProps = {
@@ -44,4 +46,13 @@ declare module "components/Grid" {
 declare module "library" {
     import "./styles.css";
     export function App(): JSX.Element;
+}
+declare module "components/ImageView" {
+    export type ImageViewProps = {
+        id: number;
+        title: string;
+        url: string;
+        onEdit: Function;
+    };
+    export default function ImageView({ id, title, url, onEdit }: ImageViewProps): JSX.Element;
 }
