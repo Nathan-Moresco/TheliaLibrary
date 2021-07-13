@@ -6,6 +6,7 @@ const globals = {
   react: "React",
   "react-dom": "ReactDOM",
   axios: "axios",
+  "react-image-crop": "ReactCrop"
 };
 
 export default [
@@ -24,7 +25,7 @@ export default [
         globals,
       },
     ],
-    external: ["react", "axios", "react-dom"],
+    external: ["react", "axios", "react-dom", "react-image-crop"],
     plugins: [
       typescript(),
       css({

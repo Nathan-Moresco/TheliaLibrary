@@ -17,6 +17,13 @@ export function createImage(data: FormData) {
     },
   });
 }
+export function updateImage(id: number, data: FormData) {
+  return axios.post(API_URL + "/" + id, data, {
+    headers: {
+      "content-type": "multipart/form-data",
+    },
+  });
+}
 export function deleteImage(id: number) {
   return axios.delete(API_URL + "/" + id);
 }
@@ -39,10 +46,3 @@ export async function getImageById(id: number) {
   return response;
 }
 
-export function updateImage(id: number, data: FormData) {
-  return axios.post(API_URL + "/" + id, data, {
-    headers: {
-      "content-type": "multipart/form-data",
-    },
-  });
-}

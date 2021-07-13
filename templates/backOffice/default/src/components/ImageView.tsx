@@ -1,20 +1,16 @@
-import { CURRENT_LOCAL } from "../constants";
 import React from "react";
-import { updateImage } from "../api";
+import Image from "./Image";
 
 export type ImageViewProps = {
   id: number;
   title: string;
   url: string;
-  fileName: string;
-  setIsEditing: Function;
+  setImgEditing: Function;
 };
 
-export default function ImageView({ id,title,url,fileName,  setIsEditing = () => {} }: ImageViewProps) {
+export default function ImageView({ id,title,url,setImgEditing = () => {} }: ImageViewProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isSuccess, setIsSuccess] = React.useState(false);
-  const [error, setError] = React.useState(false);
-  const [isPending, setIsPending] = React.useState(false);
+  const [isSuccess] = React.useState(false);
 
   React.useEffect(() => {
     if (isSuccess) {
@@ -27,13 +23,13 @@ export default function ImageView({ id,title,url,fileName,  setIsEditing = () =>
   return (
     <div>
       <a className="link-update-img"
-       onClick={() => {
-          setIsEditing(true);
+       onClick={(e) => {
+          setImgEditing(e,id,title);
         }}
       >
-        <img src={url} />
-        <div className="TheliaLibrary-Thumbnail-title">
-            {id + " - " + (title ? title : "")}
+        <Image classes="" reff={null} src={url} />
+        <div className="TheliaLibrary-Thumbnail-Complete-title">
+            {id} - <b className="TheliaLibrary-Thumbnail-title">{(title ? title : "")}</b>
         </div>
       </a>
     </div>

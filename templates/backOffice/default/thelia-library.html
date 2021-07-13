@@ -12,6 +12,7 @@
 
 {block name="after-admin-css"}
 <link rel="stylesheet" href="{stylesheet file='dist/library.css' template="default" source="TheliaLibrary"}">
+<link rel="stylesheet" href="https://unpkg.com/react-image-crop/dist/ReactCrop.css">
 {/block}
 
 {block name="main-content"}
@@ -19,9 +20,13 @@
 {/block}
 
 {block name="javascript-last-call"}
-<script crossorigin src="https://unpkg.com/react@16/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://unpkg.com/react-image-crop/dist/ReactCrop.min.js"></script>
+
+
+
 <script src="{javascript file='dist/library.umd.js' template="default" source="TheliaLibrary"}"></script>
 <script type="module">
     ReactDOM.render(React.createElement(TheliaLibrary.App), document.getElementById('library'))

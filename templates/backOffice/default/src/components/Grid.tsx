@@ -1,47 +1,49 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect } from "react";
 import Thumbnail from "./Thumbnail";
 // Components
 export type GridProps = {
-  limit: number,
-  offset: number,
   data: any;
   loading: boolean;
   error: string | null;
-  fetch: Function;
+  arrayImages: Array<{
+    id: number,
+    title: string,
+    url: string
+  }>;
+  setArrayImages: Function;
+  setImgEditing: Function;
 };
 
-export default function Grid({ limit, offset, data, loading, error, fetch }: GridProps) {
-  const [arrayImages, setArrayImages] = useState<
-    Array<{
-      id: number,
-      title: string,
-      fileName: string,
-      url: string
-    }>
-  >([])
+export default function Grid({
+  data,
+  loading,
+  error,
+  arrayImages,
+  setArrayImages,
+  setImgEditing
+}: GridProps) {
 
   useEffect(() => {
     setArrayImages(data)
   },[data])
 
   if (error) {
-    return <div>{error}</div>;
+    return <div className="error-msg"> {error} </div>;
   }
   if (loading) {
-    return <div>loading</div>;
+    return <div className="loading-msg"> Loading </div>;
   }
 
-  function pushToArray(item: {id: number; url: string; title: string; fileName: string}){
+  function deleteFromArray(id: number){
     if (!Array.isArray(arrayImages)) {
       return
     }
-
-    let tempArr = arrayImages.map((itemFromArray, index) => {
-      if(item !== null){
-        if(item.id === itemFromArray.id){
-          return item;
+    let tempArr = arrayImages.filter((itemFromArray) => {
+      if(id !== null){
+        if(id === itemFromArray.id){
+          return false
         }
-        return itemFromArray;
+        return true
       }
     });
     setArrayImages(tempArr);
@@ -49,11 +51,22 @@ export default function Grid({ limit, offset, data, loading, error, fetch }: Gri
 
   return (
     <div className="TheliaLibrary-grid">
-      {arrayImages?.map((item: { id: number; url: string; title: string; fileName: string}) => {
-        return (
-          <Thumbnail {...item} onEdit={(response) => { pushToArray(response.data) }} onDelete={() => fetch()} />
-        );
-      })}
+      {(arrayImages.length >= 1) ? (
+        arrayImages?.map((item: { id: number; url: string; title: string}) => {
+          return (
+            <Thumbnail
+              {...item}
+              key={item.id}
+              onDelete={(id:number) => { deleteFromArray(id) }}
+              setImgEditing={(e: React.MouseEvent<HTMLAnchorElement, MouseEvent>, id:number, title:string) => { setImgEditing(e, id, title) }}
+            />
+          );
+        })
+      ) : (
+        <div className="TheliaLibrary-EmptyGrid">
+          <span>Aucun Résultat</span>
+        </div>
+      )}
     </div>
   );
 }
