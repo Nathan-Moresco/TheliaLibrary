@@ -1,5 +1,5 @@
-import React from "react";
 import Image from "./Image";
+import React from "react";
 
 export type ImageViewProps = {
   id: number;
@@ -8,7 +8,12 @@ export type ImageViewProps = {
   setImgEditing: Function;
 };
 
-export default function ImageView({ id,title,url,setImgEditing = () => {} }: ImageViewProps) {
+export default function ImageView({
+  id,
+  title,
+  url,
+  setImgEditing = () => {},
+}: ImageViewProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isSuccess] = React.useState(false);
 
@@ -22,14 +27,16 @@ export default function ImageView({ id,title,url,setImgEditing = () => {} }: Ima
 
   return (
     <div>
-      <a className="link-update-img"
-       onClick={(e) => {
-          setImgEditing(e,id,title);
+      <a
+        className="link-update-img"
+        onClick={(e) => {
+          setImgEditing(e, { id, title, url });
         }}
       >
-        <Image classes="" reff={null} src={url} />
+        <Image classes="" src={url} />
         <div className="TheliaLibrary-Thumbnail-Complete-title">
-            {id} - <b className="TheliaLibrary-Thumbnail-title">{(title ? title : "")}</b>
+          {id} -{" "}
+          <b className="TheliaLibrary-Thumbnail-title">{title ? title : ""}</b>
         </div>
       </a>
     </div>
