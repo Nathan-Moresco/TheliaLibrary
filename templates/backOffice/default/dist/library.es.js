@@ -1,12 +1,34 @@
-import React, { useState, useRef, useEffect } from 'react';
-import ReactCrop from 'react-image-crop';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
-
-function Image({ classes, reff, src }) {
-    return (React.createElement("img", { className: classes, ref: reff, src: src }));
-}
+import ReactCrop from 'react-image-crop';
 
 const CURRENT_LOCAL = "en_US";
+
+function Image({ classes, src }) {
+    return React.createElement("img", { className: classes, src: src });
+}
+
+function ImageView({ id, title, url, setImgEditing = () => { }, }) {
+    const fileInputRef = React.useRef(null);
+    const [isSuccess] = React.useState(false);
+    React.useEffect(() => {
+        if (isSuccess) {
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    }, [isSuccess, fileInputRef]);
+    return (React.createElement("div", null,
+        React.createElement("a", { className: "link-update-img", onClick: (e) => {
+                setImgEditing(e, { id, title, url });
+            } },
+            React.createElement(Image, { classes: "", src: url }),
+            React.createElement("div", { className: "TheliaLibrary-Thumbnail-Complete-title" },
+                id,
+                " -",
+                " ",
+                React.createElement("b", { className: "TheliaLibrary-Thumbnail-title" }, title ? title : "")))));
+}
 
 const API_URL = "/open_api/library/image";
 // API
@@ -35,195 +57,12 @@ function deleteImage(id) {
     return axios.delete(API_URL + "/" + id);
 }
 
-function ManageDetails({ id, title, croppedFile, onAdd, onEdit, onImgPick, onTitleChange, emptyPreview, }) {
-    const fileInputRef = React.useRef(null);
-    const [isSuccess, setIsSuccess] = React.useState(false);
-    const [error, setError] = React.useState(false);
-    const [isPending, setIsPending] = React.useState(false);
-    const [localTitle, setLocalTitle] = React.useState("");
-    React.useEffect(() => {
-        if (isSuccess) {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
-        }
-    }, [isSuccess, fileInputRef]);
-    React.useEffect(() => {
-        setLocalTitle(title);
-    }, [title, setLocalTitle]);
-    return (React.createElement("div", null,
-        React.createElement("form", { autoComplete: "off", className: "TheliaLibrary-ImagePreview", onSubmit: (e) => {
-                e.preventDefault();
-                setIsPending(true);
-                setIsSuccess(false);
-                setError(false);
-                const data = new FormData(e.currentTarget);
-                if (!data.has("locale")) {
-                    data.set("locale", CURRENT_LOCAL);
-                }
-                if (croppedFile) {
-                    data.set("image", croppedFile, "cropped.png");
-                }
-                if (id === 0) {
-                    createImage(data)
-                        .then((response) => {
-                        onAdd(response.data);
-                        setIsSuccess(true);
-                        emptyPreview();
-                    })
-                        .catch((e) => setError(e.message))
-                        .finally(() => {
-                        setIsPending(false);
-                    });
-                }
-                else {
-                    updateImage(id, data)
-                        .then((response) => {
-                        onEdit(response.data);
-                        setIsSuccess(true);
-                        emptyPreview();
-                    })
-                        .catch((e) => setError(e.message))
-                        .finally(() => {
-                        setIsPending(false);
-                    });
-                }
-            } },
-            React.createElement("div", { className: "text-center" },
-                React.createElement("label", { className: "custom-file-upload" },
-                    React.createElement("input", { type: "file", name: "image", ref: fileInputRef, className: "form-control input-chose-img", onChange: (e) => { onImgPick(e, id, title); } }),
-                    "Choisir une Image"),
-                React.createElement("div", { className: "TheliaLibrary-Thumbnail-title" },
-                    React.createElement("label", { htmlFor: "title", className: "control-label" }, "Titre de l'image"),
-                    React.createElement("input", { type: "text", name: "title", value: localTitle, className: "text-center form-control input-chose-title", onChange: (e) => {
-                            setLocalTitle(e.target.value);
-                            onTitleChange(e.target.value);
-                        } })),
-                React.createElement("button", { type: "submit", disabled: isPending, className: "form-submit-button btn-green" }, " Valider Image "),
-                React.createElement("button", { type: "button", onClick: () => emptyPreview(), className: "btn-red" }, " Fermer "),
-                isSuccess ? React.createElement("div", { className: "success-msg" }, "Succes") : null,
-                error ? React.createElement("div", { className: "error-msg" },
-                    console.log(error),
-                    " Echec, veuillez recommencer") : null))));
-}
-
-function ManageImage({ id, title, src, dynamicPush, setImgPreview, emptyPreview, storeImg }) {
-    const [croppedImageUrl, setCroppedImageUrl] = useState(src);
-    const [croppedImage, setCroppedImage] = useState({ lastModified: 0, lastModifiedDate: null, name: "", size: 0, type: "", webkitRelativePath: "" });
-    const imageRef = useRef(null);
-    const [crop, setCrop] = useState({
-        unit: '%',
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 0
-    });
-    function validCrop(useCrop) {
-        if (useCrop.height === 0) {
-            if (useCrop.width === 0) {
-                return false;
-            }
-            return false;
-        }
-        return true;
-    }
-    function onCropChange(newCrop, percentCrop) {
-        if (isNaN(percentCrop.x)) {
-            percentCrop.x = 0;
-        }
-        if (isNaN(percentCrop.y)) {
-            percentCrop.y = 0;
-        }
-        if (validCrop(percentCrop)) {
-            setCrop(percentCrop);
-        }
-    }
-    function onCropComplete(newCrop) {
-        if (validCrop(newCrop)) {
-            getCroppedImg(imageRef.current, newCrop);
-        }
-    }
-    //: React.RefObject<HTMLImageElement>
-    function getCroppedImg(image, usedCrop) {
-        if (image) {
-            const canvas = document.createElement('canvas');
-            const scaleX = image.naturalWidth / image.width;
-            const scaleY = image.naturalHeight / image.height;
-            canvas.width = usedCrop.width;
-            canvas.height = usedCrop.height;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.drawImage(image, usedCrop.x * scaleX, usedCrop.y * scaleY, usedCrop.width * scaleX, usedCrop.height * scaleY, 0, 0, usedCrop.width, usedCrop.height);
-            }
-            const reader = new FileReader();
-            canvas.toBlob(blob => {
-                reader.readAsDataURL(blob);
-                reader.onloadend = () => {
-                    setCroppedImageUrl(reader.result);
-                    dataURLtoFile(reader.result, 'cropped.jpg');
-                    setImgPreview(title, reader.result);
-                };
-            });
-        }
-    }
-    function dataURLtoFile(dataurl, filename) {
-        if (dataurl) {
-            let arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1], bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            let croppedImage = new File([u8arr], filename, { type: mime });
-            setCroppedImage(croppedImage);
-        }
-    }
-    return (React.createElement("div", { className: "TheliaLibrary-Edit-Image-Content" },
-        React.createElement("div", { className: "col-span-3 Cropper-Block" },
-            React.createElement("img", { src: src, ref: imageRef, className: "display-none" }),
-            src && (React.createElement(ReactCrop, { src: src, crop: crop, locked: false, ruleOfThirds: true, onComplete: (completedCrop) => onCropComplete(completedCrop), onChange: (changedCrop, percentCrop) => { onCropChange(changedCrop, percentCrop); } }))),
-        React.createElement("div", { className: "col-span-1 Edit-Details-Block" },
-            React.createElement("button", { type: "button", className: "RefreshCrop-Btn", onClick: () => setCrop({ unit: '%', width: 100, height: 100, x: 0, y: 0 }) }, " \u00D8 "),
-            React.createElement(ManageDetails, { id: id, title: title, croppedFile: croppedImage, onAdd: (response) => {
-                    dynamicPush(response);
-                }, onEdit: (response) => {
-                    dynamicPush(response);
-                }, onImgPick: (e, id, title) => {
-                    emptyPreview();
-                    storeImg(e, id, title);
-                }, onTitleChange: (newTitle) => {
-                    storeImg(null, id, newTitle, src);
-                    if (croppedImageUrl) {
-                        setImgPreview(newTitle, croppedImageUrl);
-                    }
-                }, emptyPreview: () => emptyPreview() }))));
-}
-
-function ImageView({ id, title, url, setImgEditing = () => { } }) {
-    const fileInputRef = React.useRef(null);
-    const [isSuccess] = React.useState(false);
-    React.useEffect(() => {
-        if (isSuccess) {
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
-        }
-    }, [isSuccess, fileInputRef]);
-    return (React.createElement("div", null,
-        React.createElement("a", { className: "link-update-img", onClick: (e) => {
-                setImgEditing(e, id, title);
-            } },
-            React.createElement(Image, { classes: "", reff: null, src: url }),
-            React.createElement("div", { className: "TheliaLibrary-Thumbnail-Complete-title" },
-                id,
-                " - ",
-                React.createElement("b", { className: "TheliaLibrary-Thumbnail-title" }, (title ? title : ""))))));
-}
-
 function Thumbnail({ id, url, title, onDelete = () => { }, setImgEditing, }) {
     if (!url)
         return null;
     return (React.createElement("div", { className: "TheliaLibrary-Thumbnail" },
         React.createElement("div", { className: "text-center" },
-            React.createElement(ImageView, { id: id, title: title, url: url, setImgEditing: (e, id, title) => setImgEditing(e, id, title) }),
+            React.createElement(ImageView, { id: id, title: title, url: url, setImgEditing: () => setImgEditing() }),
             React.createElement("button", { className: "btn-red", onClick: () => {
                     if (window.confirm("Etes vous sur ?")) {
                         deleteImage(id).then(() => onDelete(id));
@@ -234,10 +73,7 @@ function Thumbnail({ id, url, title, onDelete = () => { }, setImgEditing, }) {
                 " "))));
 }
 
-function Grid({ data, loading, error, arrayImages, setArrayImages, setImgEditing }) {
-    useEffect(() => {
-        setArrayImages(data);
-    }, [data]);
+function Grid({ loading, error, images, onDelete, setImgEditing, }) {
     if (error) {
         return React.createElement("div", { className: "error-msg" },
             " ",
@@ -247,29 +83,187 @@ function Grid({ data, loading, error, arrayImages, setArrayImages, setImgEditing
     if (loading) {
         return React.createElement("div", { className: "loading-msg" }, " Loading ");
     }
-    function deleteFromArray(id) {
-        if (!Array.isArray(arrayImages)) {
-            return;
-        }
-        let tempArr = arrayImages.filter((itemFromArray) => {
-            if (id !== null) {
-                if (id === itemFromArray.id) {
-                    return false;
-                }
-                return true;
-            }
-        });
-        setArrayImages(tempArr);
-    }
-    return (React.createElement("div", { className: "TheliaLibrary-grid" }, (arrayImages.length >= 1) ? (arrayImages?.map((item) => {
-        return (React.createElement(Thumbnail, { ...item, key: item.id, onDelete: (id) => { deleteFromArray(id); }, setImgEditing: (e, id, title) => { setImgEditing(e, id, title); } }));
+    return (React.createElement("div", { className: "TheliaLibrary-grid" }, images.length >= 1 ? (images?.map((item) => {
+        return (React.createElement(Thumbnail, { ...item, key: item.id, onDelete: onDelete, setImgEditing: () => {
+                setImgEditing(item);
+            } }));
     })) : (React.createElement("div", { className: "TheliaLibrary-EmptyGrid" },
         React.createElement("span", null, "Aucun R\u00E9sultat")))));
 }
 
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = (error) => reject(error);
+    });
+}
+function urltoFile(url, filename, mimeType) {
+    return fetch(url)
+        .then(function (res) {
+        return res.arrayBuffer();
+    })
+        .then(function (buf) {
+        return new File([buf], filename, { type: mimeType });
+    });
+}
+function ManageDetails({ item, prependImage, onPickImage, reset, }) {
+    const fileInputRef = React.useRef(null);
+    const [files, setFiles] = React.useState(null);
+    const [isSuccess, setIsSuccess] = React.useState(false);
+    const [error, setError] = React.useState(false);
+    const [isPending, setIsPending] = React.useState(false);
+    const [localTitle, setLocalTitle] = React.useState("");
+    React.useEffect(() => {
+        if (isSuccess && fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    }, [isSuccess, fileInputRef]);
+    React.useEffect(() => {
+        if (item?.title) {
+            setLocalTitle(item.title);
+        }
+    }, [item, setLocalTitle]);
+    React.useEffect(() => {
+        if (files && files[0]) {
+            toBase64(files[0]).then((res) => {
+                if (typeof res === "string") {
+                    onPickImage({
+                        id: item?.id && item?.id !== "new" ? item.id : "new",
+                        url: res,
+                        title: "",
+                    });
+                }
+            });
+        }
+    }, [files]);
+    return (React.createElement("div", null,
+        React.createElement("form", { autoComplete: "off", className: "TheliaLibrary-ImagePreview", onSubmit: async (e) => {
+                e.preventDefault();
+                setIsPending(true);
+                setIsSuccess(false);
+                setError(false);
+                const data = new FormData(e.currentTarget);
+                if (!data.has("locale")) {
+                    data.set("locale", CURRENT_LOCAL);
+                }
+                if (item?.url) {
+                    const file = await urltoFile(item.url, item.title, "image/jpeg");
+                    data.set("image", file, "cropped.png");
+                }
+                if (item?.id === "new") {
+                    createImage(data)
+                        .then((response) => {
+                        prependImage(response.data);
+                        setIsSuccess(true);
+                        reset();
+                    })
+                        .catch((e) => setError(e.message))
+                        .finally(() => {
+                        setIsPending(false);
+                    });
+                }
+                else if (item?.id) {
+                    updateImage(item.id, data)
+                        .then((response) => {
+                        setIsSuccess(true);
+                        reset();
+                    })
+                        .catch((e) => setError(e.message))
+                        .finally(() => {
+                        setIsPending(false);
+                    });
+                }
+            } },
+            React.createElement("div", { className: "text-center" },
+                React.createElement("label", { className: "custom-file-upload" },
+                    React.createElement("input", { type: "file", name: "image", ref: fileInputRef, className: "form-control input-chose-img", onChange: (e) => {
+                            setFiles(e.target.files);
+                        } }),
+                    "Choisir une Image"),
+                React.createElement("div", { className: "TheliaLibrary-Thumbnail-title" },
+                    React.createElement("label", { htmlFor: "title", className: "control-label" }, "Titre de l'image"),
+                    React.createElement("input", { type: "text", name: "title", value: localTitle, className: "text-center form-control input-chose-title", onChange: (e) => {
+                            setLocalTitle(e.target.value);
+                            //onTitleChange(e.target.value);
+                        } })),
+                React.createElement("button", { type: "submit", disabled: !item?.url || isPending, className: "form-submit-button btn-green" }, "Valider Image"),
+                React.createElement("button", { type: "button", onClick: () => {
+                        reset();
+                    }, className: "btn-red" }, "Annuler"),
+                isSuccess ? React.createElement("div", { className: "success-msg" }, "Succes") : null,
+                error ? (React.createElement("div", { className: "error-msg" },
+                    console.log(error),
+                    " Echec, veuillez recommencer")) : null))));
+}
+
+function getCroppedImg(image, crop, fileName) {
+    const canvas = document.createElement("canvas");
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    canvas.width = crop.width || 0;
+    canvas.height = crop.height || 0;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+        return Promise.reject("erreur: pas de canvas context");
+    }
+    const pixelRatio = window.devicePixelRatio;
+    canvas.width = crop.width * pixelRatio;
+    canvas.height = crop.height * pixelRatio;
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(image, crop.x * scaleX, crop.y * scaleY, crop.width * scaleX, crop.height * scaleY, 0, 0, crop.width, crop.height);
+    return new Promise((resolve, reject) => {
+        canvas.toBlob((blob) => {
+            if (!blob) {
+                return Promise.reject("erreur: conversion en blob impossible");
+            }
+            blob.name = fileName;
+            resolve(blob);
+        }, "image/jpeg", 1);
+    });
+}
+function ManageImage({ item, onModifyImage }) {
+    const [imageRef, setImageRef] = React.useState(null);
+    const [crop, setCrop] = useState({
+        unit: "%",
+        width: 100,
+        height: 100,
+        x: 0,
+        y: 0,
+    });
+    React.useEffect(() => {
+        console.log(item);
+    }, [item]);
+    function onCropComplete(crop) {
+        if (imageRef) {
+            getCroppedImg(imageRef, crop, item.title).then((blob) => {
+                onModifyImage({
+                    item: item.id || "new",
+                    url: URL.createObjectURL(blob),
+                    title: item.title,
+                });
+            });
+        }
+    }
+    return (React.createElement("div", { className: "TheliaLibrary-Edit-Image-Content" },
+        React.createElement("div", { className: "col-span-3 Cropper-Block" }, item && item.url && (React.createElement(ReactCrop, { src: item.url, crop: crop, locked: false, ruleOfThirds: true, onImageLoaded: (image) => {
+                setCrop({
+                    unit: "px",
+                    x: 0,
+                    y: 0,
+                    width: image.width,
+                    height: image.height,
+                });
+                setImageRef(image);
+                return false;
+            }, onComplete: onCropComplete, onChange: setCrop })))));
+}
+
 // hooks
-function useAllImages(offset = 1, limit, title = "") {
-    const [data, setData] = React.useState(null);
+function useAllImages({ offset = 1, limit = 24, title = "" }) {
+    const [data, setData] = React.useState([]);
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState(null);
     const fetch = (offset, limit, title) => {
@@ -294,114 +288,44 @@ function useAllImages(offset = 1, limit, title = "") {
     };
 }
 function App() {
-    const imgPreview = useRef(null);
     const titlePreview = useRef(null);
-    const [arrayImages, setArrayImages] = useState([]);
-    const [selectedId, setSelectedId] = React.useState(0);
-    const [selectedTitle, setSelectedTitle] = React.useState("img");
-    const [selectedSrc, setSelectedSrc] = React.useState(""); //URL img Modal
-    const [queryTitle, setQueryTitle] = React.useState("");
+    const [activeItem, setActiveItem] = React.useState(null);
+    const [images, setImages] = useState([]);
+    const [title, setTitle] = React.useState("");
     const [offset, setOffset] = React.useState(0);
     const [limit, setLimit] = React.useState(24);
-    const { data, loading, error } = useAllImages(offset, limit, queryTitle);
-    // Preview
-    function managePreview(title, img) {
-        if (imgPreview.current) { //IMAGE
-            if (selectedSrc === "") {
-                imgPreview.current.src = ""; //DEFAULT IMG
-            }
-            else {
-                if (!img) {
-                    imgPreview.current.src = selectedSrc;
-                }
-                else {
-                    imgPreview.current.src = img;
-                }
-            }
-        }
-        if (titlePreview.current) { // TITRE
-            titlePreview.current.innerHTML = "";
-            if (selectedId == 0) {
-                if (data) {
-                    if (data.length > 0) {
-                        let newId = data[data.length - 1].id + 1;
-                        titlePreview.current.append(newId + " - " + title);
-                    }
-                    else {
-                        titlePreview.current.append("1 - " + title);
-                    }
-                }
-                else {
-                    titlePreview.current.append("1 - " + title);
-                }
-            }
-            else {
-                titlePreview.current.append(selectedId + " - " + title);
-            }
-        }
-    }
-    function emptyPreview() {
-        if (imgPreview.current) {
-            imgPreview.current.src = "";
-        }
-        if (titlePreview.current) {
-            titlePreview.current.innerHTML = "";
-        }
-        setSelectedId(0);
-        setSelectedTitle("img");
-        setSelectedSrc("");
-    }
-    //Image Changing
-    function storeImg(cible, id, title, imgCropped = "") {
-        // 1 - Placer les paramètres dans les States (Image en cours d'Edition)
-        // 2 - Lancer la Preview
-        var img = "";
-        setSelectedId(id);
-        setSelectedTitle(title);
-        if (cible) {
-            if (cible.target.src) { //Image déjà présente
-                setSelectedSrc(cible.target.src);
-                img = cible.target.src;
-            }
-            else if (cible.target.files.length) { //Image choisie avec Input
-                var reader = new FileReader();
-                reader.onload = (function (readerLoadedImgPreview) {
-                    return function (e) {
-                        if (readerLoadedImgPreview.current) {
-                            readerLoadedImgPreview.current.src = e.target.result;
-                            setSelectedSrc(e.target.result);
-                            img = e.target.result;
-                        }
-                    };
-                })(imgPreview);
-                reader.readAsDataURL(cible.target.files[0]);
-            }
-            else {
-                console.log("cible.target.src is null : ", cible);
-            }
-        }
-        else {
-            if (imgCropped) {
-                setSelectedSrc(imgCropped);
-                img = imgCropped;
-            }
-        }
-        managePreview(title, img);
-    }
+    const { data, loading, error } = useAllImages({ title, offset, limit });
+    React.useEffect(() => {
+        setImages(data);
+    }, [data]);
     //Grid Array
-    function pushToArray(item) {
-        if (!Array.isArray(arrayImages)) {
+    function prependImage(item) {
+        if (!Array.isArray(images)) {
             return;
         }
-        let tempArr = arrayImages.map((itemFromArray) => {
-            if (item !== null) {
+        let tempArr = [...images];
+        // if image already exists, update it, if it's a new image prepend it.
+        if (images.some(({ id }) => id === item.id)) {
+            tempArr = tempArr.map((itemFromArray) => {
                 if (item.id === itemFromArray.id) {
                     return item;
                 }
                 return itemFromArray;
-            }
+            });
+        }
+        else {
+            tempArr.unshift(item);
+        }
+        setImages(tempArr);
+    }
+    function deleteImage(id) {
+        if (!Array.isArray(images)) {
+            return;
+        }
+        let tempArr = images.filter((image) => {
+            return id !== image.id;
         });
-        setArrayImages(tempArr);
+        setImages(tempArr);
     }
     return (React.createElement("div", { className: "bg-red-100" },
         React.createElement("div", { className: "Settings" },
@@ -411,15 +335,12 @@ function App() {
                 React.createElement("span", null, "Visualisation")),
             React.createElement("div", { className: "col-span-5" },
                 React.createElement("div", { className: "TheliaLibrary-EditImage" },
-                    React.createElement(ManageImage, { id: selectedId, title: selectedTitle, src: selectedSrc, dynamicPush: (responseData) => {
-                            pushToArray(responseData);
-                        }, emptyPreview: () => emptyPreview(), storeImg: (e, id, title, image) => storeImg(e, id, title, image), setImgPreview: (title, croppedImg) => {
-                            managePreview(title, croppedImg);
-                        } }))),
+                    React.createElement(ManageImage, { item: activeItem, onModifyImage: (item) => setActiveItem(item) }),
+                    React.createElement(ManageDetails, { item: activeItem, onPickImage: (item) => setActiveItem(item), prependImage: prependImage, reset: () => setActiveItem(null) }))),
             React.createElement("div", { className: "col-span-2" },
                 React.createElement("div", { className: "TheliaLibrary-ImgPreview" },
                     React.createElement("div", null,
-                        React.createElement(Image, { classes: "img-preview", reff: imgPreview, src: "" })),
+                        React.createElement(Image, { classes: "img-preview", src: activeItem?.url || "" })),
                     React.createElement("span", { className: "title-preview", ref: titlePreview })))),
         React.createElement("div", { className: "line-grid-actions" },
             React.createElement("button", { className: "btn-page-previous", disabled: limit > offset, onClick: () => {
@@ -428,7 +349,7 @@ function App() {
                 " ",
                 React.createElement("i", { className: "glyphicon glyphicon-chevron-left" }),
                 " "),
-            React.createElement("button", { className: "btn-page-next", disabled: Array.isArray(data) && data?.length < limit, onClick: () => {
+            React.createElement("button", { className: "btn-page-next", disabled: Array.isArray(images) && images?.length < limit, onClick: () => {
                     setOffset(offset + limit);
                 } },
                 " ",
@@ -436,25 +357,27 @@ function App() {
                 " "),
             React.createElement("span", { className: "page-Indicator" },
                 "Page ",
-                React.createElement("b", null, (offset / limit) + 1)),
+                React.createElement("b", null, offset / limit + 1)),
             React.createElement("span", { className: "line-number" },
-                " Nombre de Lignes ",
-                React.createElement("input", { className: "line-number-input", type: "number", min: "1", onChange: (e) => setLimit(e.target.value * 8) })),
+                " ",
+                "Nombre de Lignes",
+                " ",
+                React.createElement("input", { className: "line-number-input", type: "number", min: "1", onChange: (e) => setLimit(parseInt(e.target.value) * 8) })),
             React.createElement("span", { className: "nb-products" },
-                " Nombre de Produits : ",
-                data ? data.length : 0),
+                " ",
+                "Nombre d'images : ",
+                images ? images.length : 0),
             React.createElement("button", { className: "all-products", onClick: () => {
                     if (window.confirm("Si tous les produits sont chargés, il se peut que votre navigateur soit bloqué. Continuer ?")) {
                         setLimit(9999);
                     }
                 } }, "Afficher toutes les Images"),
-            React.createElement("input", { type: "text", value: queryTitle, className: "inline text-left form-control input-chose-title query-title", onChange: (e) => {
-                    setQueryTitle(e.target.value);
+            React.createElement("input", { type: "text", value: title, className: "inline text-left form-control input-chose-title query-title", onChange: (e) => {
+                    setTitle(e.target.value);
                 }, placeholder: "Recherche par Titre" })),
-        React.createElement(Grid, { arrayImages: arrayImages, setArrayImages: (array) => setArrayImages(array), data: data, loading: loading, error: error, setImgEditing: (e, id, title) => {
-                emptyPreview();
-                storeImg(e, id, title);
-            } })));
+        React.createElement(Grid, { images: images, loading: loading, error: error, setImgEditing: (image) => {
+                setActiveItem(image);
+            }, onDelete: deleteImage })));
 }
 
 export { App };

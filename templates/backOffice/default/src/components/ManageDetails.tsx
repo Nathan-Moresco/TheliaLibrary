@@ -1,80 +1,111 @@
+import { createImage, updateImage } from "../api";
+
 import { CURRENT_LOCAL } from "../constants";
+import { ImageItem } from "../library";
 import React from "react";
-import { updateImage, createImage } from "../api";
 
 export type ManageDetailsProps = {
-  id: number;
-  title: string;
-  croppedFile: { lastModified: number; lastModifiedDate: null; name: string; size: number; type: string; webkitRelativePath: string; };
-  onAdd: Function;
-  onEdit: Function;
-  onImgPick: Function;
-  onTitleChange: Function;
-  emptyPreview: Function;
+  item: ImageItem | null;
+  prependImage: (image: ImageItem) => void;
+  onPickImage: (image: ImageItem) => void;
+  reset: () => void;
 };
 
+function toBase64(file: File): Promise<string | ArrayBuffer | null> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+}
+
+function urltoFile(url: string, filename: string, mimeType: string) {
+  return fetch(url)
+    .then(function (res) {
+      return res.arrayBuffer();
+    })
+    .then(function (buf) {
+      return new File([buf], filename, { type: mimeType });
+    });
+}
+
 export default function ManageDetails({
-  id,
-  title,
-  croppedFile,
-  onAdd,
-  onEdit,
-  onImgPick,
-  onTitleChange,
-  emptyPreview,
+  item,
+  prependImage,
+  onPickImage,
+  reset,
 }: ManageDetailsProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [files, setFiles] = React.useState<FileList | null>(null);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [error, setError] = React.useState(false);
   const [isPending, setIsPending] = React.useState(false);
   const [localTitle, setLocalTitle] = React.useState("");
 
   React.useEffect(() => {
-    if (isSuccess) {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    if (isSuccess && fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   }, [isSuccess, fileInputRef]);
 
   React.useEffect(() => {
-    setLocalTitle(title);
-  }, [title, setLocalTitle]);
+    if (item?.title) {
+      setLocalTitle(item.title);
+    }
+  }, [item, setLocalTitle]);
+
+  React.useEffect(() => {
+    if (files && files[0]) {
+      toBase64(files[0]).then((res) => {
+        if (typeof res === "string") {
+          onPickImage({
+            id: item?.id && item?.id !== "new" ? item.id : "new",
+            url: res,
+            title: "",
+          });
+        }
+      });
+    }
+  }, [files]);
 
   return (
     <div>
       <form
         autoComplete="off"
         className="TheliaLibrary-ImagePreview"
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           setIsPending(true);
           setIsSuccess(false);
           setError(false);
           const data = new FormData(e.currentTarget);
+
           if (!data.has("locale")) {
             data.set("locale", CURRENT_LOCAL);
           }
-          if(croppedFile){
-            data.set("image", croppedFile, "cropped.png");
+
+          if (item?.url) {
+            const file = await urltoFile(item.url, item.title, "image/jpeg");
+            data.set("image", file, "cropped.png");
           }
-          if(id === 0){
+
+          if (item?.id === "new") {
             createImage(data)
               .then((response) => {
-                onAdd(response.data);
+                prependImage(response.data);
                 setIsSuccess(true);
-                emptyPreview();
+                reset();
               })
               .catch((e) => setError(e.message))
               .finally(() => {
                 setIsPending(false);
               });
-          } else {
-            updateImage(id, data)
+          } else if (item?.id) {
+            updateImage(item.id, data)
               .then((response) => {
-                onEdit(response.data);
                 setIsSuccess(true);
-                emptyPreview();
+                reset();
               })
               .catch((e) => setError(e.message))
               .finally(() => {
@@ -83,18 +114,20 @@ export default function ManageDetails({
           }
         }}
       >
-        
         <div className="text-center">
           <label className="custom-file-upload">
-            <input type="file"
+            <input
+              type="file"
               name="image"
               ref={fileInputRef}
               className="form-control input-chose-img"
-              onChange={(e) => { onImgPick(e, id, title)}}
+              onChange={(e) => {
+                setFiles(e.target.files);
+              }}
             />
             Choisir une Image
           </label>
-          
+
           <div className="TheliaLibrary-Thumbnail-title">
             <label htmlFor="title" className="control-label">
               Titre de l'image
@@ -106,28 +139,37 @@ export default function ManageDetails({
               className="text-center form-control input-chose-title"
               onChange={(e) => {
                 setLocalTitle(e.target.value);
-                onTitleChange(e.target.value);
+                //onTitleChange(e.target.value);
               }}
             />
           </div>
-          
+
           <button
             type="submit"
-            disabled={isPending}
+            disabled={!item?.url || isPending}
             className="form-submit-button btn-green"
-          > Valider Image </button>
+          >
+            Valider Image
+          </button>
 
           <button
             type="button"
-            onClick={() => emptyPreview()}
+            onClick={() => {
+              reset();
+            }}
             className="btn-red"
-          > Fermer </button>
+          >
+            Annuler
+          </button>
 
           {isSuccess ? <div className="success-msg">Succes</div> : null}
-          {error ? <div className="error-msg">{console.log(error)} Echec, veuillez recommencer</div> : null}
+          {error ? (
+            <div className="error-msg">
+              {console.log(error)} Echec, veuillez recommencer
+            </div>
+          ) : null}
         </div>
       </form>
     </div>
-    
   );
 }

@@ -7,7 +7,7 @@ export type ThumbnailProps = {
   url: string;
   title: string;
   onDelete: Function;
-  setImgEditing: Function;
+  setImgEditing: () => void;
 };
 export default function Thumbnail({
   id,
@@ -16,7 +16,6 @@ export default function Thumbnail({
   onDelete = () => {},
   setImgEditing,
 }: ThumbnailProps) {
-
   if (!url) return null;
 
   return (
@@ -26,7 +25,7 @@ export default function Thumbnail({
           id={id}
           title={title}
           url={url}
-          setImgEditing={(e: React.MouseEvent<HTMLAnchorElement, MouseEvent>,id: number,title: string) => setImgEditing(e,id,title)}
+          setImgEditing={() => setImgEditing()}
         />
         <button
           className="btn-red"
@@ -35,7 +34,10 @@ export default function Thumbnail({
               deleteImage(id).then(() => onDelete(id));
             }
           }}
-        > <span> Supprimer</span> </button>
+        >
+          {" "}
+          <span> Supprimer</span>{" "}
+        </button>
       </div>
     </div>
   );

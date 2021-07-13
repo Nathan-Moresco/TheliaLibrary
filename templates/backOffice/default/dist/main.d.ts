@@ -9,44 +9,14 @@ declare module "api" {
 declare module "constants" {
     export const CURRENT_LOCAL = "en_US";
 }
-declare module "components/AddImage" {
-    export type AddImageProps = {
-        onAdd: (response: any) => any;
-        onImgPick: Function;
-    };
-    export default function AddImage({ onAdd, onImgPick }: AddImageProps): JSX.Element;
-}
 declare module "components/Image" {
     import React from "react";
     export type ImageProps = {
         classes: string;
-        reff: React.RefObject<HTMLImageElement>;
+        reff: React.RefObject<HTMLImageElement> | null;
         src: string;
     };
     export default function Image({ classes, reff, src }: ImageProps): JSX.Element;
-}
-declare module "components/EditImage" {
-    export type EditImageProps = {
-        id: number;
-        title: string;
-        onAdd: Function;
-        onEdit: Function;
-        onImgPick: Function;
-        onTitleChange: Function;
-        closeEdit: Function;
-    };
-    export default function EditImage({ id, title, onAdd, onEdit, onImgPick, onTitleChange, closeEdit, }: EditImageProps): JSX.Element;
-}
-declare module "components/Modal" {
-    export type ModalProps = {
-        id: number;
-        title: string;
-        src: string;
-        emptyPreview: Function;
-        setImgPreview: Function;
-        storeImg: Function;
-    };
-    export default function Modal({ id, title, src, setImgPreview, emptyPreview, storeImg }: ModalProps): JSX.Element;
 }
 declare module "components/ImageView" {
     export type ImageViewProps = {
@@ -69,21 +39,50 @@ declare module "components/Thumbnail" {
 }
 declare module "components/Grid" {
     export type GridProps = {
-        limit: number;
-        offset: number;
         data: any;
         loading: boolean;
         error: string | null;
-        processLock: Function;
-        itemManaged: {
+        arrayImages: Array<{
             id: number;
             title: string;
             url: string;
-        };
-        addToGrid: boolean;
+        }>;
+        setArrayImages: Function;
         setImgEditing: Function;
     };
-    export default function Grid({ limit, offset, data, loading, error, processLock, itemManaged, addToGrid, setImgEditing }: GridProps): JSX.Element;
+    export default function Grid({ data, loading, error, arrayImages, setArrayImages, setImgEditing }: GridProps): JSX.Element;
+}
+declare module "components/ManageDetails" {
+    export type ManageDetailsProps = {
+        id: number;
+        title: string;
+        croppedFile: {
+            lastModified: number;
+            lastModifiedDate: null;
+            name: string;
+            size: number;
+            type: string;
+            webkitRelativePath: string;
+        };
+        onAdd: Function;
+        onEdit: Function;
+        onImgPick: Function;
+        onTitleChange: Function;
+        emptyPreview: Function;
+    };
+    export default function ManageDetails({ id, title, croppedFile, onAdd, onEdit, onImgPick, onTitleChange, emptyPreview, }: ManageDetailsProps): JSX.Element;
+}
+declare module "components/ManageImage" {
+    export type ManageImageProps = {
+        id: number;
+        title: string;
+        src: string;
+        dynamicPush: Function;
+        emptyPreview: Function;
+        setImgPreview: Function;
+        storeImg: Function;
+    };
+    export default function ManageImage({ id, title, src, dynamicPush, setImgPreview, emptyPreview, storeImg, }: ManageImageProps): JSX.Element;
 }
 declare module "library" {
     import "./styles.css";
