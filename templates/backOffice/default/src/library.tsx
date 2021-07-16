@@ -54,6 +54,7 @@ function useAllImages({ offset = 1, limit = 24, title = "" }: ImageQuery) {
 export function App() {
   const titlePreview = useRef<HTMLSpanElement>(null);
   const [activeItem, setActiveItem] = React.useState<ImageItem | null>(null);
+  const [unEditedSrc, setUneditedSrc] = React.useState("");
 
   const [images, setImages] = useState<ImageItem[]>([]);
 
@@ -67,6 +68,13 @@ export function App() {
     setImages(data);
   }, [data]);
 
+  React.useEffect(() => {
+    if(activeItem){
+      if(titlePreview.current){
+        titlePreview.current.innerHTML = activeItem.title;
+      }
+    }
+  })
   //Grid Array
   function prependImage(item: ImageItem) {
     if (!Array.isArray(images)) {
@@ -80,11 +88,10 @@ export function App() {
         if (item.id === itemFromArray.id) {
           return item;
         }
-
         return itemFromArray;
       });
     } else {
-      tempArr.unshift(item);
+      tempArr.push(item);
     }
 
     setImages(tempArr);
@@ -112,15 +119,23 @@ export function App() {
         <div className="col-span-5">
           <div className="TheliaLibrary-EditImage">
             <ManageImage
+              src={unEditedSrc}
               item={activeItem}
               onModifyImage={(item: ImageItem) => setActiveItem(item)}
             />
 
             <ManageDetails
               item={activeItem}
-              onPickImage={(item: ImageItem) => setActiveItem(item)}
-              prependImage={prependImage}
-              reset={() => setActiveItem(null)}
+              onTitleChange={(item: ImageItem) => setActiveItem(item)}
+              onPickImage={(item: ImageItem) => {
+                setActiveItem(item);
+                setUneditedSrc(item.url);
+              }}
+              prependImage={(item) => prependImage(item)}
+              reset={() => {
+                setActiveItem(null);
+                setUneditedSrc("");
+              }}
             />
           </div>
         </div>
@@ -201,6 +216,7 @@ export function App() {
         error={error}
         setImgEditing={(image: ImageItem) => {
           setActiveItem(image);
+          setUneditedSrc(image.url);
         }}
         onDelete={deleteImage}
       />

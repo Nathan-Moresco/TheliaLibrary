@@ -116,7 +116,7 @@
             return new File([buf], filename, { type: mimeType });
         });
     }
-    function ManageDetails({ item, prependImage, onPickImage, reset, }) {
+    function ManageDetails({ item, prependImage, onTitleChange, onPickImage, reset, }) {
         const fileInputRef = React__default['default'].useRef(null);
         const [files, setFiles] = React__default['default'].useState(null);
         const [isSuccess, setIsSuccess] = React__default['default'].useState(false);
@@ -131,6 +131,7 @@
         React__default['default'].useEffect(() => {
             if (item?.title) {
                 setLocalTitle(item.title);
+                onTitleChange(item);
             }
         }, [item, setLocalTitle]);
         React__default['default'].useEffect(() => {
@@ -147,7 +148,7 @@
             }
         }, [files]);
         return (React__default['default'].createElement("div", null,
-            React__default['default'].createElement("form", { autoComplete: "off", className: "TheliaLibrary-ImagePreview", onSubmit: async (e) => {
+            React__default['default'].createElement("form", { autoComplete: "off", className: "TheliaLibrary-ManageDetails", onSubmit: async (e) => {
                     e.preventDefault();
                     setIsPending(true);
                     setIsSuccess(false);
@@ -175,26 +176,37 @@
                     else if (item?.id) {
                         updateImage(item.id, data)
                             .then((response) => {
+                            prependImage(response.data);
                             setIsSuccess(true);
                             reset();
                         })
-                            .catch((e) => setError(e.message))
+                            .catch((e) => {
+                            setError(e.message);
+                        })
                             .finally(() => {
                             setIsPending(false);
                         });
+                    }
+                    else {
+                        console.log("Nulle part : ", item);
                     }
                 } },
                 React__default['default'].createElement("div", { className: "text-center" },
                     React__default['default'].createElement("label", { className: "custom-file-upload" },
                         React__default['default'].createElement("input", { type: "file", name: "image", ref: fileInputRef, className: "form-control input-chose-img", onChange: (e) => {
                                 setFiles(e.target.files);
+                                if (item) {
+                                    onPickImage({ id: item.id, url: item.url, title: item.title });
+                                }
                             } }),
                         "Choisir une Image"),
                     React__default['default'].createElement("div", { className: "TheliaLibrary-Thumbnail-title" },
                         React__default['default'].createElement("label", { htmlFor: "title", className: "control-label" }, "Titre de l'image"),
                         React__default['default'].createElement("input", { type: "text", name: "title", value: localTitle, className: "text-center form-control input-chose-title", onChange: (e) => {
                                 setLocalTitle(e.target.value);
-                                //onTitleChange(e.target.value);
+                                if (item) {
+                                    onTitleChange({ id: item.id, url: item.url, title: e.target.value });
+                                }
                             } })),
                     React__default['default'].createElement("button", { type: "submit", disabled: !item?.url || isPending, className: "form-submit-button btn-green" }, "Valider Image"),
                     React__default['default'].createElement("button", { type: "button", onClick: () => {
@@ -232,7 +244,7 @@
             }, "image/jpeg", 1);
         });
     }
-    function ManageImage({ item, onModifyImage }) {
+    function ManageImage({ src, item, onModifyImage }) {
         const [imageRef, setImageRef] = React__default['default'].useState(null);
         const [crop, setCrop] = React.useState({
             unit: "%",
@@ -241,22 +253,19 @@
             x: 0,
             y: 0,
         });
-        React__default['default'].useEffect(() => {
-            console.log(item);
-        }, [item]);
         function onCropComplete(crop) {
             if (imageRef) {
                 getCroppedImg(imageRef, crop, item.title).then((blob) => {
                     onModifyImage({
-                        item: item.id || "new",
+                        id: item.id || "new",
                         url: URL.createObjectURL(blob),
                         title: item.title,
                     });
                 });
             }
         }
-        return (React__default['default'].createElement("div", { className: "TheliaLibrary-Edit-Image-Content" },
-            React__default['default'].createElement("div", { className: "col-span-3 Cropper-Block" }, item && item.url && (React__default['default'].createElement(ReactCrop__default['default'], { src: item.url, crop: crop, locked: false, ruleOfThirds: true, onImageLoaded: (image) => {
+        return (React__default['default'].createElement("div", { className: "TheliaLibrary-ManageImage" },
+            React__default['default'].createElement("div", { className: "col-span-3 Cropper-Block" }, item && src && (React__default['default'].createElement(ReactCrop__default['default'], { src: src, crop: crop, locked: false, ruleOfThirds: true, onImageLoaded: (image) => {
                     setCrop({
                         unit: "px",
                         x: 0,
@@ -298,6 +307,7 @@
     function App() {
         const titlePreview = React.useRef(null);
         const [activeItem, setActiveItem] = React__default['default'].useState(null);
+        const [unEditedSrc, setUneditedSrc] = React__default['default'].useState("");
         const [images, setImages] = React.useState([]);
         const [title, setTitle] = React__default['default'].useState("");
         const [offset, setOffset] = React__default['default'].useState(0);
@@ -306,6 +316,13 @@
         React__default['default'].useEffect(() => {
             setImages(data);
         }, [data]);
+        React__default['default'].useEffect(() => {
+            if (activeItem) {
+                if (titlePreview.current) {
+                    titlePreview.current.innerHTML = activeItem.title;
+                }
+            }
+        });
         //Grid Array
         function prependImage(item) {
             if (!Array.isArray(images)) {
@@ -322,7 +339,7 @@
                 });
             }
             else {
-                tempArr.unshift(item);
+                tempArr.push(item);
             }
             setImages(tempArr);
         }
@@ -343,8 +360,14 @@
                     React__default['default'].createElement("span", null, "Visualisation")),
                 React__default['default'].createElement("div", { className: "col-span-5" },
                     React__default['default'].createElement("div", { className: "TheliaLibrary-EditImage" },
-                        React__default['default'].createElement(ManageImage, { item: activeItem, onModifyImage: (item) => setActiveItem(item) }),
-                        React__default['default'].createElement(ManageDetails, { item: activeItem, onPickImage: (item) => setActiveItem(item), prependImage: prependImage, reset: () => setActiveItem(null) }))),
+                        React__default['default'].createElement(ManageImage, { src: unEditedSrc, item: activeItem, onModifyImage: (item) => setActiveItem(item) }),
+                        React__default['default'].createElement(ManageDetails, { item: activeItem, onTitleChange: (item) => setActiveItem(item), onPickImage: (item) => {
+                                setActiveItem(item);
+                                setUneditedSrc(item.url);
+                            }, prependImage: (item) => prependImage(item), reset: () => {
+                                setActiveItem(null);
+                                setUneditedSrc("");
+                            } }))),
                 React__default['default'].createElement("div", { className: "col-span-2" },
                     React__default['default'].createElement("div", { className: "TheliaLibrary-ImgPreview" },
                         React__default['default'].createElement("div", null,
@@ -385,6 +408,7 @@
                     }, placeholder: "Recherche par Titre" })),
             React__default['default'].createElement(Grid, { images: images, loading: loading, error: error, setImgEditing: (image) => {
                     setActiveItem(image);
+                    setUneditedSrc(image.url);
                 }, onDelete: deleteImage })));
     }
 

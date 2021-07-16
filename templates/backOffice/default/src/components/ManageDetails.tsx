@@ -7,6 +7,7 @@ import React from "react";
 export type ManageDetailsProps = {
   item: ImageItem | null;
   prependImage: (image: ImageItem) => void;
+  onTitleChange: (image: ImageItem) => void;
   onPickImage: (image: ImageItem) => void;
   reset: () => void;
 };
@@ -33,6 +34,7 @@ function urltoFile(url: string, filename: string, mimeType: string) {
 export default function ManageDetails({
   item,
   prependImage,
+  onTitleChange,
   onPickImage,
   reset,
 }: ManageDetailsProps) {
@@ -52,6 +54,7 @@ export default function ManageDetails({
   React.useEffect(() => {
     if (item?.title) {
       setLocalTitle(item.title);
+      onTitleChange(item);
     }
   }, [item, setLocalTitle]);
 
@@ -73,7 +76,7 @@ export default function ManageDetails({
     <div>
       <form
         autoComplete="off"
-        className="TheliaLibrary-ImagePreview"
+        className="TheliaLibrary-ManageDetails"
         onSubmit={async (e) => {
           e.preventDefault();
           setIsPending(true);
@@ -104,13 +107,18 @@ export default function ManageDetails({
           } else if (item?.id) {
             updateImage(item.id, data)
               .then((response) => {
+                prependImage(response.data);
                 setIsSuccess(true);
                 reset();
               })
-              .catch((e) => setError(e.message))
+              .catch((e) => {
+                setError(e.message)
+              })
               .finally(() => {
                 setIsPending(false);
               });
+          } else {
+            console.log("Nulle part : ", item)
           }
         }}
       >
@@ -123,6 +131,9 @@ export default function ManageDetails({
               className="form-control input-chose-img"
               onChange={(e) => {
                 setFiles(e.target.files);
+                if(item){
+                  onPickImage({id: item.id, url: item.url, title: item.title});
+                }
               }}
             />
             Choisir une Image
@@ -139,7 +150,9 @@ export default function ManageDetails({
               className="text-center form-control input-chose-title"
               onChange={(e) => {
                 setLocalTitle(e.target.value);
-                //onTitleChange(e.target.value);
+                if(item){
+                  onTitleChange({id: item.id, url: item.url, title: e.target.value});
+                }
               }}
             />
           </div>

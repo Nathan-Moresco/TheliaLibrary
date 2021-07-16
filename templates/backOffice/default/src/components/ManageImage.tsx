@@ -6,6 +6,7 @@ import { ImageItem } from "../library";
 import ManageDetails from "./ManageDetails";
 
 export type ManageImageProps = {
+  src: string;
   item: ImageItem | null;
   onModifyImage: Function;
 };
@@ -61,7 +62,7 @@ function getCroppedImg(
   });
 }
 
-export default function ManageImage({ item, onModifyImage }: ManageImageProps) {
+export default function ManageImage({ src, item, onModifyImage }: ManageImageProps) {
   const [imageRef, setImageRef] = React.useState<HTMLImageElement | null>(null);
 
   const [crop, setCrop] = useState<Crop>({
@@ -72,15 +73,11 @@ export default function ManageImage({ item, onModifyImage }: ManageImageProps) {
     y: 0,
   });
 
-  React.useEffect(() => {
-    console.log(item);
-  }, [item]);
-
   function onCropComplete(crop: Crop) {
     if (imageRef) {
       getCroppedImg(imageRef, crop, item.title).then((blob) => {
         onModifyImage({
-          item: item.id || "new",
+          id: item.id || "new",
           url: URL.createObjectURL(blob),
           title: item.title,
         });
@@ -89,11 +86,11 @@ export default function ManageImage({ item, onModifyImage }: ManageImageProps) {
   }
 
   return (
-    <div className="TheliaLibrary-Edit-Image-Content">
+    <div className="TheliaLibrary-ManageImage">
       <div className="col-span-3 Cropper-Block">
-        {item && item.url && (
+        {item && src && (
           <ReactCrop
-            src={item.url}
+            src={src}
             crop={crop}
             locked={false}
             ruleOfThirds
